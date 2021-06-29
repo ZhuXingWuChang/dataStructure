@@ -375,6 +375,81 @@ void StackTraverse(LinkStack stack)
 	printf("\n");
 }
 
+#define MAXSIZE 100
+
+typedef struct
+{
+	int data[MAXSIZE];
+	int top1;
+	int top2;
+} SqDoubleStack;
+
+void visit(int elem)
+{
+	printf("%d ", elem);
+	return;
+}
+
+SqDoubleStack InitDoubleStack(SqDoubleStack* stack)
+{
+	stack->top1 = -1;
+	stack->top2 = MAXSIZE;
+	return *stack;
+}
+
+void ClearDoubleStack(SqDoubleStack* stack)
+{
+	stack->top1 = -1;
+	stack->top2 = MAXSIZE;
+	return;
+}
+
+bool DoubleStackEmpty(SqDoubleStack stack)
+{
+	if (stack.top1 == -1 && stack.top2 == MAXSIZE)
+		return true;
+	return false;
+}
+
+int DoubleStackLength(SqDoubleStack stack)
+{
+	return (MAXSIZE - stack.top2) + (stack.top1 + 1);
+}
+
+void DoublePush(SqDoubleStack* stack, int elem, int stackNum)
+{
+	if (stack->top2 - stack->top1 < 1)
+		return;
+	else if (1 == stackNum)
+		stack->data[++stack->top1] = elem;
+	else if (2 == stackNum)
+		stack->data[--stack->top2] = elem;
+
+	return;
+}
+
+int DoublePop(SqDoubleStack* stack, int stackNum)
+{
+	if (stack->top1 <= -1 || stack->top2 >= MAXSIZE)
+		exit(0);
+	else if (1 == stackNum)
+		return stack->data[stack->top1--];
+	else
+		return stack->data[stack->top2++];
+}
+
+void DoubleStackTraverse(SqDoubleStack stack)
+{
+	printf("Stack1: ");
+	for (int i = 0; i < stack.top1 + 1; i++)
+		visit(stack.data[i]);
+	printf("\nStack2: ");
+	for (int i = MAXSIZE - 1; i > stack.top2 - 1; i--)
+		visit(stack.data[i]);
+	printf("\n");
+	return;
+}
+
 void UseStack()
 {
 	LinkStack stack = InitStack(&stack);
@@ -428,6 +503,19 @@ void UseStack()
 			break;
 		case 4:
 			printf("--------应用-------\n");
+			printf("两栈共享存储空间\n");
+			SqDoubleStack doubleStack;
+			doubleStack = InitDoubleStack(&doubleStack);
+			DoublePush(&doubleStack, 1, 1);
+			DoublePush(&doubleStack, 2, 1);
+			DoublePush(&doubleStack, 3, 1);
+			DoublePush(&doubleStack, 4, 1);
+			DoublePush(&doubleStack, 10, 2);
+			DoublePush(&doubleStack, 11, 2);
+			DoublePush(&doubleStack, 12, 2);
+			DoublePush(&doubleStack, 13, 2);
+			DoubleStackTraverse(doubleStack);
+			printf("Double栈的长度为：%d。\n", DoubleStackLength(doubleStack));
 			break;
 		case 5:
 			break;
@@ -599,7 +687,8 @@ void UseQueue()
 			printf("取队尾元素完毕！\n");
 			break;
 		case 5:
-			printf("---------应用-------");
+			printf("---------应用-------\n");
+			printf("队列的应用部分，见图的Breach First Seedgeh算法。\n");
 			break;
 		case 6:
 			break;
@@ -636,6 +725,7 @@ void CreateBiTree(SqBiTree bt)
 	while (1 == scanf("%d", &input) && i < MAX_TREE_SIZE)
 	{
 		fflush(stdin);
+		getchar();
 		bt[i] = input;
 		if (i != 0 && bt[(i + 1) / 2 - 1] == Nil && bt[i] != Nil)
 			return;
@@ -673,10 +763,13 @@ int BiTreeDepth(SqBiTree bt)
 {
 	int lastNode;
 	int depth = 0;
+	// 用一个for循环找到Tree中最后一个结点的为止
 	for (lastNode = MAX_TREE_SIZE - 1; lastNode >= 0; lastNode--)
 		if (bt[lastNode] != Nil)
 			break;
+	// 因为数组是以0开始,所以为了与定义的以1开始一致,这里加一
 	lastNode++;
+	// 用一个while循环计算Tree的深度
 	while (lastNode >= pow(2, depth))
 		depth++;
 
@@ -865,6 +958,145 @@ void Print(SqBiTree bt)
 	}
 }
 
+typedef enum
+{
+	Link,  // 0值代表Link,作为链使用
+	Thread // 1值代表Thread,作为线索使用
+} PointerTag;
+
+typedef struct BiThrNode
+{
+	char data;
+	struct BiThrNode* lchild, * rchild;
+	PointerTag LTag;
+	PointerTag RTag;
+} BiThrNode, * BiThrTree;
+
+char _Nil = '#';
+
+void charVisit(char e)
+{
+	printf("%c ", e);
+	return;
+}
+
+BiThrTree InitBiThrTree(BiThrTree* btt)
+{
+	*btt = NULL;
+	return *btt;
+}
+
+// 按前序遍历算法的顺序来构造一棵树
+void CreateBiThrTree(BiThrTree* btt)
+{
+	char ch;
+	getchar();
+	scanf("%c", &ch);
+	fflush(stdin);
+
+	if (ch == _Nil)
+		*btt = NULL;
+	else
+	{
+		*btt = (BiThrTree)malloc(sizeof(BiThrNode));
+		if (!*btt)
+			exit(0);
+		(*btt)->data = ch;
+		CreateBiThrTree(&((*btt)->lchild));
+		if ((*btt)->lchild)
+			(*btt)->LTag = Link;
+		CreateBiThrTree(&((*btt)->rchild));
+		if ((*btt)->rchild)
+			(*btt)->RTag = Link;
+	}
+	return;
+}
+
+// 全局变量,用来指向上一个访问过的结点(保存前驱结点的位置)
+BiThrTree prevP = NULL;
+// 用中序遍历进行中序线索化
+void InThreading(BiThrTree currentP)
+{
+	if (currentP)
+	{
+		// 在中序遍历中,按照左根右的顺序,找到最左的子树
+		InThreading(currentP->lchild);
+		// 从最左边的子树开始往回递归,下面是递归过程中对当前左子树根节点的操作
+		// 操作该结点,让其线索指到前驱
+		if (!currentP->lchild)
+		{
+			currentP->LTag = Thread;
+			currentP->lchild = prevP;
+		}
+		// 操作该结点的前驱结点,让其线索指到后继
+		if (!prevP->rchild)
+		{
+			prevP->RTag = Thread;
+			prevP->rchild = currentP;
+		}
+		// 该结点操作完毕,现在该结点称为前驱结点,递归
+		prevP = currentP;
+		// 操作完该子树的根结点,开始递归进入该子树的右子树
+		InThreading(currentP->rchild);
+	}
+	return;
+}
+// 中序遍历二叉树,thrHead指向头结点,btt是二叉树本身
+void InOrderThreading(BiThrTree* thrHead, BiThrTree btt)
+{
+	*thrHead = (BiThrTree)malloc(sizeof(BiThrNode));
+	if (!*thrHead)
+		exit(0);
+	// 初始化头结点的lchild,它最终要作为Link,指向树的Root
+	(*thrHead)->LTag = Link;
+	(*thrHead)->lchild = NULL;
+	// 初始化头结点的rchild,它最终要作为线索,指向中序遍历中的最后一个元素
+	(*thrHead)->RTag = Thread;
+	(*thrHead)->rchild = NULL;
+	// 如果btt不是空树
+	if (btt)
+	{
+		(*thrHead)->lchild = btt;
+		// 在中序化线索前,以头结点为前一个结点,将其传入InThreading()中
+		prevP = (*thrHead);
+		InThreading(btt);
+		// 在中序线索化后,全局变量prevP就成了最后一个结点
+		prevP->RTag = Thread;
+		// 最后一个结点的rchild指向头结点
+		prevP->rchild = (*thrHead);
+		// 头结点的rchild指向最后一个结点
+		(*thrHead)->rchild = prevP;
+	}
+	return;
+}
+
+// 以非递归的形式(降低时间复杂度,这也是线索二叉树的目的所在)
+// 来遍历整个二叉树btt
+void InOrderTraverse_Thr(BiThrTree btt)
+{
+	BiThrTree currentP;
+	currentP = btt->lchild;
+	// 从根节点开始,遍历结束后会回到头结点(和循环链表一样)
+	// 故以头结点作为判断循环是否结束的依据
+	while (currentP != btt)
+	{
+		// 先找到最左的子树
+		while (currentP->LTag == Link)
+			currentP = currentP->lchild;
+		// 循环结束后,currentP指向了最左子树的根结点
+		charVisit(currentP->data);
+		// 看最左子树是否有最右子树,如果没有,使用线索回到它的双亲
+		while (currentP->RTag == Thread && currentP->rchild != btt)
+		{
+			currentP = currentP->rchild;
+			charVisit(currentP->data);
+		}
+		// 剩下最后一种情况就是还剩Link右子树,那么进入
+		currentP = currentP->rchild;
+	}
+	return;
+}
+
 void UseBiTree()
 {
 	SqBiTree bt;
@@ -958,6 +1190,14 @@ void UseBiTree()
 			break;
 		case 8:
 			printf("---------应用-------\n");
+			BiThrTree mybtt, header;
+			mybtt = InitBiThrTree(&mybtt);
+			printf("按先序遍历法则创建一颗二叉树：\n");
+			CreateBiThrTree(&mybtt);
+			printf("创建完毕。线索化并中序遍历输出：\n");
+			InOrderThreading(&header, mybtt);
+			InOrderTraverse_Thr(header);
+			printf("\n");
 			break;
 		case 9:
 			break;
@@ -968,8 +1208,328 @@ void UseBiTree()
 	} while (n != 9);
 }
 
+#define MAXVEX 100
+#define INF 65535
+
+typedef struct EdgeNode
+{
+	int adjvex;
+	int weight;
+	struct EdgeNode* next;
+} EdgeNode;
+
+// Vertex使用数组结构
+typedef struct VertextNode
+{
+	char data;
+	EdgeNode* firstedge;
+} VertexNode, AdjList[MAXVEX];
+
+typedef struct
+{
+	AdjList adjList;
+	int numVexs, numEdges;
+} ALGraph;
+
+ALGraph CreateALGraph(ALGraph* graph)
+{
+	int i, j;       // i和j代表顶点的下标
+	int weight;     // 边的权值
+	EdgeNode* edge; // 存放新分配的结点, 插到链表中
+	printf("输入顶点个数和边的个数：\n");
+	scanf("%d%d", &graph->numVexs, &graph->numEdges);
+	// 给AdjList[]中的各个VertexNode的data域赋初值, 并初始化firstedge域为NULL
+	for (int k = 0; k < graph->numVexs; k++)
+	{
+		fflush(stdin);
+		getchar();
+		printf("给第%d个顶点赋值：\n", k + 1);
+		scanf("%c", &graph->adjList[k].data);
+		graph->adjList[k].firstedge = NULL;
+	}
+	// 给numEdges条边指定依附的结点, 并赋权值
+	for (int k = 0; k < graph->numEdges; k++)
+	{
+		fflush(stdin);
+		printf("输入第%d条边所连接的两个顶点，以及边的权值：\n", k + 1);
+		scanf("%d%d%d", &i, &j, &weight);
+		// 使用头插法将EdgeNode链到VertexNode上
+		edge = (EdgeNode*)malloc(sizeof(EdgeNode));
+		edge->adjvex = j - 1;
+		edge->weight = weight;
+		edge->next = graph->adjList[i - 1].firstedge;
+		graph->adjList[i - 1].firstedge = edge;
+		// 因为是无向图,所以adjList[i]和adjList[j]应该互指
+		edge = (EdgeNode*)malloc(sizeof(EdgeNode));
+		edge->adjvex = i - 1;
+		edge->weight = weight;
+		edge->next = graph->adjList[j - 1].firstedge;
+		graph->adjList[j - 1].firstedge = edge;
+	}
+	return *graph;
+}
+
+// 标志访问的数组,用来标记该顶点是否已经被访问过
+bool visited[MAXVEX];
+
+// 深度优先遍历的操作,供下面的深度优先遍历函数调用
+void DFS(ALGraph graph, int i)
+{
+	// 先设置访问标志为true
+	visited[i] = true;
+	EdgeNode* edge = graph.adjList[i].firstedge;
+	visit(graph.adjList[i].data);
+	while (edge)
+	{
+		if (!visited[edge->adjvex])
+			DFS(graph, edge->adjvex);
+		edge = edge->next;
+	}
+	return;
+}
+// 深度优先遍历,需要调用上面的DFS封装好的操作
+void DFSTraverse(ALGraph graph)
+{
+	int i; // 访问顶点的下标变量
+	// 先设置visited数组的标志为false
+	for (i = 0; i < graph.numVexs; i++)
+		visited[i] = false;
+	for (i = 0; i < graph.numVexs; i++)
+		if (!visited[i])
+			DFS(graph, i);
+	return;
+}
+
+void BFSTraverse(ALGraph graph)
+{
+	int i = 0;      // 访问顶点的下标变量
+	EdgeNode* edge; // edge指针,在广度有限遍历的实现中使用
+	LinkQueue queue;    // 广度优先队列
+	queue = InitQueue(&queue);
+	for (i = 0; i < graph.numVexs; i++)
+		visited[i] = false;
+	// 遍历每个顶点,并且进行广度优先遍历
+	for (i = 0; i < graph.numVexs; i++)
+	{
+		if (!visited[i])
+		{
+			// 顶点的访问操作
+			visited[i] = true;
+			visit(graph.adjList[i].data);
+			EnQueue(&queue, i);
+			// 广度优先遍历的具体操作
+			while (!QueueEmpty(queue))
+			{
+				i = DeQueue(&queue);
+				edge = graph.adjList[i].firstedge;
+				while (edge)
+				{
+					if (!visited[edge->adjvex])
+					{
+						visited[edge->adjvex] = true;
+						visit(graph.adjList[edge->adjvex].data);
+						EnQueue(&queue, edge->adjvex);
+					}
+					edge = edge->next;
+				}
+			}
+		}
+	}
+	return;
+}
+
+int FindValue(ALGraph graph, char value)
+{
+	for (int i = 0; i < graph.numVexs; i++)
+		if (graph.adjList[i].data == value)
+			return i + 1;
+	return 0;
+}
+
+char FindFirstVex(ALGraph graph)
+{
+	return graph.adjList[0].data;
+}
+
+char FindNextVex(ALGraph graph, char value)
+{
+	int i;
+	for (i = 0; i < graph.numVexs; i++)
+		if (graph.adjList[i].data == value)
+			break;
+	return graph.adjList[i + 1].data;
+}
+
+/*
+* params:
+*	graph: 需要插入顶点的图
+*	value: 插入的新顶点的值
+*	idnex: 新顶点需要与一个原顶点连接，index代表被连接顶点的下标
+*	weight: 这条边的权值
+*/
+void InsertVex(ALGraph* graph, char value, int index, int weight)
+{
+	int num = 1;	// 计数变量，记下增加的边的个数
+	EdgeNode* insertEdge;
+
+	// 插入顶点操作
+	graph->adjList[graph->numVexs].data = value;
+	graph->adjList[graph->numVexs].firstedge = NULL;
+
+	// 插入边操作
+	if (index < graph->numVexs)
+	{
+		fflush(stdin);
+		getchar();
+		// 使用头插法将EdgeNode链到VertexNode上
+		insertEdge = (EdgeNode*)malloc(sizeof(EdgeNode));
+		insertEdge->adjvex = index - 1;
+		insertEdge->weight = weight;
+		insertEdge->next = graph->adjList[graph->numVexs].firstedge;
+		graph->adjList[graph->numVexs].firstedge = insertEdge;
+		// 无向图，边有两个方向
+		insertEdge = (EdgeNode*)malloc(sizeof(EdgeNode));
+		insertEdge->adjvex = graph->numVexs;
+		insertEdge->weight = weight;
+		insertEdge->next = graph->adjList[index - 1].firstedge;
+		graph->adjList[graph->numVexs].firstedge = insertEdge;
+	}
+
+	graph->numVexs++;
+	return;
+}
+
+// 邻接矩阵的数据结构,使用邻接矩阵更方便实现最小生成树算法
+typedef struct
+{
+	char vexs[MAXVEX];
+	int edge[MAXVEX][MAXVEX];
+	int numVexs, numEdges;
+} AMGraph;
+
+AMGraph CreateAMGraph(AMGraph* graph)
+{
+	int i, j;   // i和j代表顶点的下标
+	int weight; // 边的权值
+	printf("输入顶点个数和边的个数：\n");
+	scanf("%d%d", &graph->numVexs, &graph->numEdges);
+	// 给各个顶点赋值
+	for (int k = 0; k < graph->numVexs; k++)
+	{
+		printf("给第%d个顶点赋值：\n", k + 1);
+		fflush(stdin);
+		getchar();
+		scanf("%c", &graph->vexs[k]);
+	}
+	// 给所有边默认赋值为INF(无权值)
+	for (int i = 0; i < graph->numVexs; i++)
+		for (int j = 0; j < graph->numVexs; j++)
+			graph->edge[i][j] = INF;
+	// 指定numEdges条边依附的顶点,以及权值
+	for (int k = 0; k < graph->numEdges; k++)
+	{
+		printf("输入第%d条边所连接的两个顶点，以及边的权值：\n", k + 1);
+		fflush(stdin);
+		scanf("%d%d%d", &i, &j, &weight);
+		graph->edge[i - 1][j - 1] = weight;
+		graph->edge[j - 1][i - 1] = graph->edge[i - 1][j - 1];
+	}
+	return *graph;
+}
+
+// 手动输入一个图的过程过于复杂，故封装一个默认的邻接矩阵生成过程于该函数中
+void _CreateAMGraph(AMGraph* G)
+{
+	int i, j;
+
+	/* printf("请输入边数和顶点数:"); */
+	G->numEdges = 15;
+	G->numVexs = 9;
+
+	for (i = 0; i < G->numVexs; i++)/* 初始化图 */
+	{
+		for (j = 0; j < G->numVexs; j++)
+		{
+			if (i == j)
+				G->edge[i][j] = 0;
+			else
+				G->edge[i][j] = G->edge[j][i] = INF;
+		}
+	}
+
+	G->edge[0][1] = 10;
+	G->edge[0][5] = 11;
+	G->edge[1][2] = 18;
+	G->edge[1][8] = 12;
+	G->edge[1][6] = 16;
+	G->edge[2][8] = 8;
+	G->edge[2][3] = 22;
+	G->edge[3][8] = 21;
+	G->edge[3][6] = 24;
+	G->edge[3][7] = 16;
+	G->edge[3][4] = 20;
+	G->edge[4][7] = 7;
+	G->edge[4][5] = 26;
+	G->edge[5][6] = 17;
+	G->edge[6][7] = 19;
+
+	for (i = 0; i < G->numVexs; i++)
+	{
+		for (j = i; j < G->numVexs; j++)
+		{
+			G->edge[j][i] = G->edge[i][j];
+		}
+	}
+}
+
+// Prim算法生成最小生成树(Minumum Cost Spanning Tree)
+void MiniSpanTree_Prim(AMGraph G)
+{
+	int min, i, j, k;
+	int adjvex[MAXVEX];		/* 保存相关顶点下标 */
+	int lowcost[MAXVEX];	/* 保存相关顶点间边的权值 */
+	lowcost[0] = 0;/* 初始化第一个权值为0，即v0加入生成树 */
+			/* lowcost的值为0，在这里就是此下标的顶点已经加入生成树 */
+	adjvex[0] = 0;			/* 初始化第一个顶点下标为0 */
+	for (i = 1; i < G.numVexs; i++)	/* 循环除下标为0外的全部顶点 */
+	{
+		lowcost[i] = G.edge[0][i];	/* 将v0顶点与之有边的权值存入数组 */
+		adjvex[i] = 0;					/* 初始化都为v0的下标 */
+	}
+	for (i = 1; i < G.numVexs; i++)
+	{
+		min = INF;	/* 初始化最小权值为∞， */
+						/* 通常设置为不可能的大数字如32767、65535等 */
+		j = 1; k = 0;
+		while (j < G.numVexs)	/* 循环全部顶点 */
+		{
+			if (lowcost[j] != 0 && lowcost[j] < min)/* 如果权值不为0且权值小于min */
+			{
+				min = lowcost[j];	/* 则让当前权值成为最小值 */
+				k = j;			/* 将当前最小值的下标存入k */
+			}
+			j++;
+		}
+		printf("(%d, %d)\n", adjvex[k], k);/* 打印当前顶点边中权值最小的边 */
+		lowcost[k] = 0;/* 将当前顶点的权值设置为0,表示此顶点已经完成任务 */
+		for (j = 1; j < G.numVexs; j++)	/* 循环所有顶点 */
+		{
+			if (lowcost[j] != 0 && G.edge[k][j] < lowcost[j])
+			{/* 如果下标为k顶点各边权值小于此前这些顶点未被加入生成树权值 */
+				lowcost[j] = G.edge[k][j];/* 将较小的权值存入lowcost相应位置 */
+				adjvex[j] = k;				/* 将下标为k的顶点存入adjvex */
+			}
+		}
+	}
+}
+
 void Graph()
 {
+	ALGraph graph;
+	AMGraph matrix;
+	char vexValue;
+	int index;
+	int weight;
 	int n;
 	do
 	{
@@ -990,28 +1550,83 @@ void Graph()
 		switch (n)
 		{
 		case 1:
-			printf("---------创建（邻接矩阵/邻接表）-------");
+			printf("---------创建（邻接矩阵/邻接表）-------\n");
+			graph = CreateALGraph(&graph);
+			printf("创建邻接表完毕！\n");
 			break;
 		case 2:
-			printf("---------遍历（深度/广度）-------");
+			printf("---------遍历（深度/广度）-------\n");
+			printf("深度优先遍历：\n");
+			DFSTraverse(graph);
+			printf("\n广度优先遍历：\n");
+			BFSTraverse(graph);
+			printf("\n遍历结束！\n");
 			break;
 		case 3:
-			printf("---------定位-------");
+			printf("---------定位-------\n");
+			printf("请输入顶点的值：\n");
+			getchar();
+			while (scanf("%c", &vexValue) != 1)
+			{
+				fflush(stdin);
+				getchar();
+				printf("请输入字符型值！\n");
+			}
+			index = FindValue(graph, vexValue);
+			printf("定位结果为%d（0代表找不到该顶点）。\n", index);
+			printf("定位结束！\n");
 			break;
 		case 4:
-			printf("---------找第一个邻接点-------");
+			printf("---------找第一个邻接点-------\n");
+			vexValue = FindFirstVex(graph);
+			printf("第一个邻接点的值为%c。\n", vexValue);
+			printf("查找完毕！\n");
 			break;
 		case 5:
-			printf("---------找下一个邻接点-------");
+			printf("---------找下一个邻接点-------\n");
+			printf("输入值，查找该值对应顶点的下一个邻接点：\n");
+			getchar();
+			while (scanf("%c", &vexValue) != 1)
+			{
+				fflush(stdin);
+				getchar();
+				printf("请输入字符型值！\n");
+			}
+			vexValue = FindNextVex(graph, vexValue);
+			printf("下一个邻接点的值为%c。\n", vexValue);
+			printf("查找完毕！\n");
 			break;
 		case 6:
-			printf("---------插入（点/边）-------");
+			printf("---------插入（点/边）-------\n");
+			printf("请输入插入的顶点的值：\n");
+			getchar();
+			while (scanf("%c", &vexValue) != 1)
+			{
+				fflush(stdin);
+				printf("请输入字符型值！\n");
+			}
+			printf("请输入与其连接的顶点的下标和权值（#代表退出）：\n");
+			getchar();
+			scanf("%d%d", &index, &weight);
+			InsertVex(&graph, vexValue, index, weight);
+			printf("插入点完毕！\n");
 			break;
 		case 7:
-			printf("---------删除（点/边）-------");
+			printf("---------删除（点/边）-------\n");
+			printf("输入删除的顶点的下标：\n");
+			while (scanf("%d", &index) != 1 && index > graph.numVexs)
+			{
+				printf("重新输入！\n");
+			}
+			graph.adjList[index - 1].data = -INF;
+			printf("删除点完毕！\n");
 			break;
 		case 8:
-			printf("---------应用-------");
+			printf("---------应用-------\n");
+			printf("使用邻接矩阵实现最小生成树算法\n");
+			_CreateAMGraph(&matrix);
+			MiniSpanTree_Prim(matrix);
+			printf("实现完毕！\n");
 			break;
 		case 9:
 			break;
